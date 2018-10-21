@@ -1,12 +1,14 @@
 BASE_LABEL = -1
 OUTLIER_LABEL = -99
 
+# fungsi untuk membentuk union dari 2 set
 def set_union(neighbors, neighbors_set, new_neighbors):
     for neighbor in new_neighbors:
         if neighbor not in neighbors_set:
             neighbors.append(neighbor)
             neighbors_set.add(neighbor)
 
+# kelas untuk membandung model DBSCAn
 class DBSCAN:
     dataset = None
     prediction = None
@@ -21,6 +23,7 @@ class DBSCAN:
         self.prediction = [BASE_LABEL] * self.dataset_size
         self.__dbscan()
 
+    # algoritma utama
     def __dbscan(self):
         current_cluster = BASE_LABEL
         for data_index in range(self.dataset_size):
@@ -33,6 +36,7 @@ class DBSCAN:
                 current_cluster += 1
                 self.__claim_cluster(current_cluster, data_index, neighbors)
 
+    # fungsi untuk mencari tetangga dari suatu titik yang tidak lebih jauh dari epsilon
     def __find_neighbors(self, data_index):
         neighbors = []
         for index in range(self.dataset_size):
@@ -40,6 +44,7 @@ class DBSCAN:
                 neighbors.append(index)
         return neighbors
 
+    # fungsi untuk menentukan anggota cluster yang sama dengan seed
     def __claim_cluster(self, current_cluster, data_index, neighbors):
         self.prediction[data_index] = current_cluster
         index = 0
@@ -54,3 +59,4 @@ class DBSCAN:
                 if len(current_neighbors) >= self.min_points:
                     set_union(neighbors, neighbors_set, current_neighbors)
             index += 1
+

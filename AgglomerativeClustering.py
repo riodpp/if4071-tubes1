@@ -3,6 +3,7 @@ import numpy as np
 from sklearn import datasets
 import pandas as pd
 
+# kelas untuk membandung model agglomerative
 class AgglomerativeClustering:
     SINGLE_LINKAGE = 'single'
     COMPLETE_LINKAGE = 'complete'
@@ -17,6 +18,7 @@ class AgglomerativeClustering:
     def __init__(self, linkage=SINGLE_LINKAGE):
         self.linkage = linkage
 
+    # algoritma utama
     def fit(self, dataset):
         self.dataset = dataset
         self.__create_distance_matrix()
@@ -24,7 +26,8 @@ class AgglomerativeClustering:
             clusters = self.__claim_current_cluster()
             self.__update_distance_matrix(clusters)
         self.data_structure = self.__release_cluster([self.distance_matrix.index[0]])
-            
+
+    # fungsi untuk inisiai matriks jarak        
     def __create_distance_matrix(self):
         dataset_size = len(self.dataset)
         distance_matrix = np.full((dataset_size, dataset_size), np.inf)
@@ -33,6 +36,7 @@ class AgglomerativeClustering:
                 distance_matrix[index][other_index] = np.linalg.norm(self.dataset[index] - self.dataset[other_index])
         self.distance_matrix = pd.DataFrame(distance_matrix)
 
+    # fungsi untuk mencari anggota cluster baru dari matriks jarak terakhir
     def __claim_current_cluster(self):
         min_distance = np.min(self.distance_matrix.values)
         indexes = np.where(self.distance_matrix.values == min_distance)
@@ -46,6 +50,7 @@ class AgglomerativeClustering:
             addition += 1
         return clusters
 
+    # fungsi untuk menentukan jarak antara 2 cluster
     def __calculate_distance(self, item_1, item_2):
         row, col = self.__get_cluster_key(item_1), self.__get_cluster_key(item_2)
         item_1_idx = self.distance_matrix.index.get_loc(row)
@@ -54,6 +59,7 @@ class AgglomerativeClustering:
             row, col = col, row
         return self.distance_matrix.loc[row, col]
 
+    # fungsi untuk mengupdate anggota matriks jarak
     def __update_distance_matrix(self, clusters):
         for cluster in clusters:
             new_distances = []
@@ -73,13 +79,14 @@ class AgglomerativeClustering:
                     new_distances.append(np.linalg.norm(self.__get_centroid(row) - self.__get_centroid(cluster)))
             self.__inject_cluster_to_matirx(cluster, new_distances)
 
+    # fungsi untuk mendaftarkan cluster baru ke matriks jarak
     def __inject_cluster_to_matirx(self, cluster_label, new_distance):
         self.distance_matrix[self.__get_cluster_key(cluster_label)] = new_distance
         self.distance_matrix.loc[self.__get_cluster_key(cluster_label)] = [np.inf] * len(self.distance_matrix.columns)
         self.distance_matrix.drop(columns=[self.__get_cluster_key(idx) for idx in cluster_label], inplace=True)
         self.distance_matrix.drop(index=[self.__get_cluster_key(idx) for idx in cluster_label], inplace=True)
         
-    
+    # fungsi untuk menyatukan cluster yang memiliki lebih dari 2 anggota setara
     @staticmethod
     def __purify_cluster(clusters):
         idx = 0
@@ -93,7 +100,8 @@ class AgglomerativeClustering:
                 else:
                     other_idx += 1
             idx += 1
-            
+    
+    # fungsi untuk mencari centroid dari cluster
     def __get_centroid(self, cluster):
         cluster_member = self.__get_cluster_members(cluster)
         if type(cluster_member) != list:
@@ -101,6 +109,7 @@ class AgglomerativeClustering:
         data = self.dataset[cluster_member, :]
         return np.mean(data, axis=0)
     
+    # fungsi untuk mencari anggota dari suatu cluster
     def __get_cluster_members(self, cluster):
         if type(cluster) != list:
             if cluster in self.cluster_key.keys():
@@ -115,6 +124,7 @@ class AgglomerativeClustering:
                     members.append(self.__get_cluster_members(child))
         return members
 
+    # fungsi untuk mencari korespondensi id dalam matriks jarak dengan tuple clusternya
     def __get_cluster_key(self, cluster):
         if type(cluster) != list:
             return cluster
@@ -123,6 +133,7 @@ class AgglomerativeClustering:
                 return key
         return None
 
+    # fungsi untuk memperoleh dendogram dalam representasi list
     def __release_cluster(self, cluster):
         retval = []
         for member in cluster:
@@ -132,6 +143,7 @@ class AgglomerativeClustering:
                 retval.append(self.__release_cluster(self.cluster_key[member]))
         return retval
 
+    # fungsi untuk memperoleh dendogram dalam representasi newick 
     @staticmethod
     def dump_newick_format(list_input):
         if type(list_input) != list:
