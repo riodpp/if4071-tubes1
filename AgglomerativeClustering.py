@@ -5,6 +5,9 @@ import pandas as pd
 
 class AgglomerativeClustering:
     SINGLE_LINKAGE = 'single'
+    COMPLETE_LINKAGE = 'complete'
+    AVERAGE_LINKAGE = 'average'
+    AVERAGE_GROUP_LINKAGE = 'average_group'
     
     dataset = None
     distance_matrix = None
@@ -56,10 +59,18 @@ class AgglomerativeClustering:
             new_distances = []
             for row in self.distance_matrix.index:
                 member_distances = []
-                for col in cluster:
-                    distance = self.__calculate_distance(row, col)
-                    member_distances.append(distance if distance != np.inf else 0.0)
-                new_distances.append(np.min(member_distances))
+                if self.linkage != AgglomerativeClustering.AVERAGE_GROUP_LINKAGE:
+                    for col in cluster:
+                        distance = self.__calculate_distance(row, col)
+                        member_distances.append(distance if distance != np.inf else 0.0)
+                    if self.linkage == AgglomerativeClustering.COMPLETE_LINKAGE:
+                        new_distances.append(np.max(member_distances))
+                    elif self.linkage == AgglomerativeClustering.AVERAGE_LINKAGE:
+                        new_distances.append(np.mean(member_distances))
+                    else:
+                        new_distances.append(np.min(member_distances))
+                else:
+                    new_distances.append(np.linalg.norm(self.__get_centroid(row) - self.__get_centroid(cluster)))
             self.__inject_cluster_to_matirx(cluster, new_distances)
 
     def __inject_cluster_to_matirx(self, cluster_label, new_distance):
@@ -82,6 +93,27 @@ class AgglomerativeClustering:
                 else:
                     other_idx += 1
             idx += 1
+            
+    def __get_centroid(self, cluster):
+        cluster_member = self.__get_cluster_members(cluster)
+        if type(cluster_member) != list:
+            return self.dataset[cluster_member, :]
+        data = self.dataset[cluster_member, :]
+        return np.mean(data, axis=0)
+    
+    def __get_cluster_members(self, cluster):
+        if type(cluster) != list:
+            if cluster in self.cluster_key.keys():
+                return self.__get_cluster_members(self.cluster_key[cluster])
+            return cluster        
+        members = []
+        for item in cluster:
+            if item not in self.cluster_key.keys():
+                members.append(item)
+            else:
+                for child in self.__get_cluster_members(self.cluster_key[item]):
+                    members.append(self.__get_cluster_members(child))
+        return members
 
     def __get_cluster_key(self, cluster):
         if type(cluster) != list:
